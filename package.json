@@ -1,0 +1,41 @@
+{
+  "name": "gmail-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Gmail search, reading, labeling, archiving, trash, and spam workflows.",
+  "type": "module",
+  "bin": {
+    "gmail-mcp-server": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "auth": "tsx src/auth-cli.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "gmail",
+    "google",
+    "email"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "dotenv": "^16.4.7",
+    "google-auth-library": "^9.15.1",
+    "googleapis": "^144.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "ip-address": "10.2.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
