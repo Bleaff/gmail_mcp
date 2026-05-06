@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "gmail": {
+      "command": "npx",
+      "args": ["-y", "github:Bleaff/gmail_mcp"],
+      "env": {
+        "GOOGLE_CLIENT_ID": "your-oauth-client-id.apps.googleusercontent.com",
+        "GOOGLE_CLIENT_SECRET": "your-oauth-client-secret",
+        "GMAIL_TOKEN_PATH": "/absolute/path/to/.gmail-token.json"
+      }
+    }
+  }
+}

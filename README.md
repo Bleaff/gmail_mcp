@@ -60,3 +60,58 @@ Use the built server over stdio:
 ```
 
 The server requests `https://www.googleapis.com/auth/gmail.modify`, which covers reading messages and modifying labels. Keep `.env` and `.gmail-token.json` private.
+
+## LM Studio
+
+LM Studio 0.3.17+ can run MCP servers from its `mcp.json`. In LM Studio, open the right sidebar, switch to the Program tab, then click `Install > Edit mcp.json`.
+
+For a local clone, paste this entry into `mcpServers` and adjust paths:
+
+```json
+{
+  "gmail": {
+    "command": "node",
+    "args": ["/absolute/path/to/gmail_mcp/dist/index.js"],
+    "env": {
+      "GOOGLE_CLIENT_ID": "your-oauth-client-id.apps.googleusercontent.com",
+      "GOOGLE_CLIENT_SECRET": "your-oauth-client-secret",
+      "GMAIL_TOKEN_PATH": "/absolute/path/to/gmail_mcp/.gmail-token.json"
+    }
+  }
+}
+```
+
+For installation directly from GitHub, use:
+
+```json
+{
+  "gmail": {
+    "command": "npx",
+    "args": ["-y", "github:Bleaff/gmail_mcp"],
+    "env": {
+      "GOOGLE_CLIENT_ID": "your-oauth-client-id.apps.googleusercontent.com",
+      "GOOGLE_CLIENT_SECRET": "your-oauth-client-secret",
+      "GMAIL_TOKEN_PATH": "/absolute/path/to/.gmail-token.json"
+    }
+  }
+}
+```
+
+Full example: `examples/lmstudio.mcp.example.json`.
+
+LM Studio can also install MCP entries through a deeplink:
+
+[Add Gmail MCP to LM Studio](lmstudio://add_mcp?name=gmail&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImdpdGh1YjpCbGVhZmYvZ21haWxfbWNwIl0sImVudiI6eyJHT09HTEVfQ0xJRU5UX0lEIjoieW91ci1vYXV0aC1jbGllbnQtaWQuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJHT09HTEVfQ0xJRU5UX1NFQ1JFVCI6InlvdXItb2F1dGgtY2xpZW50LXNlY3JldCIsIkdNQUlMX1RPS0VOX1BBVEgiOiIvYWJzb2x1dGUvcGF0aC90by8uZ21haWwtdG9rZW4uanNvbiJ9fQ%3D%3D)
+
+After installing through the deeplink, edit the placeholders in LM Studio's `mcp.json`.
+
+## Publish for other users
+
+This repository is ready to share from GitHub:
+
+```bash
+git remote add origin https://github.com/Bleaff/gmail_mcp.git
+git push -u origin develop
+```
+
+If the repository should be discoverable, make it public in GitHub repository settings and add topics such as `mcp`, `gmail`, `lm-studio`, and `model-context-protocol`.

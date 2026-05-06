@@ -11,6 +11,7 @@
     "dev": "tsx src/index.ts",
     "auth": "tsx src/auth-cli.ts",
     "start": "node dist/index.js",
+    "prepare": "npm run build",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -19,6 +20,14 @@
     "google",
     "email"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bleaff/gmail_mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Bleaff/gmail_mcp/issues"
+  },
+  "homepage": "https://github.com/Bleaff/gmail_mcp#readme",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.5",
