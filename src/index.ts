@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { createGmailClient, parseMessage, requiredMessageId, simplifyMessage } from "./gmail.js";
 import { loadConfig } from "./config.js";
-import { loadStoredCredentials } from "./auth.js";
+import { buildAuthUrl, exchangeCodeForToken, loadStoredCredentials, saveCredentials } from "./auth.js";
 
 const USER_ID = "me";
 
@@ -58,6 +58,32 @@ server.tool("gmail_auth_status", {}, async () => {
 
   return jsonText(status);
 });
+
+server.tool("gmail_auth_url", {}, async () => {
+  return jsonText({
+    authUrl: buildAuthUrl(),
+    nextStep: "Open authUrl, approve Gmail access, then call gmail_auth_exchange with the returned code.",
+  });
+});
+
+server.tool(
+  "gmail_auth_exchange",
+  {
+    code: z.string().min(1).describe("OAuth authorization code returned by Google after approval."),
+  },
+  async ({ code }) => {
+    const tokens = await exchangeCodeForToken(code.trim());
+    const tokenPath = await saveCredentials(tokens);
+
+    return jsonText({
+      saved: true,
+      tokenPath,
+      hasAccessToken: Boolean(tokens.access_token),
+      hasRefreshToken: Boolean(tokens.refresh_token),
+      expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
+    });
+  },
+);
 
 server.tool("gmail_profile", {}, async () => {
   const gmail = await createGmailClient();
