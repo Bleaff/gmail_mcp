@@ -60,8 +60,11 @@ server.tool("gmail_auth_status", {}, async () => {
 });
 
 server.tool("gmail_auth_url", {}, async () => {
+  const config = loadConfig();
+
   return jsonText({
     authUrl: buildAuthUrl(),
+    redirectUri: config.redirectUri,
     nextStep: "Open authUrl, approve Gmail access, then call gmail_auth_exchange with the returned code.",
   });
 });
