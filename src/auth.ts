@@ -16,7 +16,25 @@ export async function loadStoredCredentials(): Promise<Credentials> {
     throw error;
   });
 
-  return JSON.parse(raw) as Credentials;
+  let credentials: Credentials;
+  try {
+    credentials = JSON.parse(raw) as Credentials;
+  } catch (error) {
+    const looksLikeApiKey = raw.trim().startsWith("AIza");
+    throw new Error(
+      looksLikeApiKey
+        ? `Token file at ${config.tokenPath} contains a Google API key, not an OAuth token. Run npm run auth and save the generated OAuth credentials JSON.`
+        : `Token file at ${config.tokenPath} is not valid JSON. Run npm run auth to regenerate it.`,
+    );
+  }
+
+  if (!credentials.refresh_token && !credentials.access_token) {
+    throw new Error(
+      `Token file at ${config.tokenPath} does not contain OAuth credentials. Run npm run auth to regenerate it.`,
+    );
+  }
+
+  return credentials;
 }
 
 export async function getAuthenticatedClient(): Promise<OAuth2Client> {

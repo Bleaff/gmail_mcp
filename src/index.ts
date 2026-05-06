@@ -3,6 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { createGmailClient, parseMessage, requiredMessageId, simplifyMessage } from "./gmail.js";
+import { loadConfig } from "./config.js";
+import { loadStoredCredentials } from "./auth.js";
 
 const USER_ID = "me";
 
@@ -25,6 +27,37 @@ function jsonText(data: unknown) {
 const messageIdsSchema = {
   ids: z.array(z.string().min(1)).min(1).max(1000).describe("Gmail message IDs."),
 };
+
+server.tool("gmail_auth_status", {}, async () => {
+  const status: Record<string, unknown> = {
+    ok: false,
+    config: {
+      hasGoogleClientId: Boolean(process.env.GOOGLE_CLIENT_ID),
+      hasGoogleClientSecret: Boolean(process.env.GOOGLE_CLIENT_SECRET),
+      gmailTokenPath: process.env.GMAIL_TOKEN_PATH ?? ".gmail-token.json",
+    },
+  };
+
+  try {
+    const config = loadConfig();
+    const credentials = await loadStoredCredentials();
+    status.ok = true;
+    status.config = {
+      hasGoogleClientId: Boolean(config.clientId),
+      hasGoogleClientSecret: Boolean(config.clientSecret),
+      gmailTokenPath: config.tokenPath,
+    };
+    status.credentials = {
+      hasAccessToken: Boolean(credentials.access_token),
+      hasRefreshToken: Boolean(credentials.refresh_token),
+      expiryDate: credentials.expiry_date ? new Date(credentials.expiry_date).toISOString() : null,
+    };
+  } catch (error) {
+    status.error = error instanceof Error ? error.message : String(error);
+  }
+
+  return jsonText(status);
+});
 
 server.tool("gmail_profile", {}, async () => {
   const gmail = await createGmailClient();
