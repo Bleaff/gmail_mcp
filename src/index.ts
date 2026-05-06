@@ -43,6 +43,34 @@ function normalizeSearchQuery(query: string): string {
   return normalized;
 }
 
+function googleApiErrorInfo(error: unknown): { status?: number; message: string } {
+  if (error instanceof Error) {
+    const maybeGoogleError = error as Error & {
+      code?: number;
+      response?: {
+        status?: number;
+        data?: {
+          error?: {
+            message?: string;
+          };
+        };
+      };
+    };
+
+    return {
+      status: maybeGoogleError.response?.status ?? maybeGoogleError.code,
+      message: maybeGoogleError.response?.data?.error?.message ?? error.message,
+    };
+  }
+
+  return { message: String(error) };
+}
+
+function isNotFoundError(error: unknown): boolean {
+  const info = googleApiErrorInfo(error);
+  return info.status === 404 || /not found|requested entity was not found/i.test(info.message);
+}
+
 server.tool("gmail_auth_status", {}, async () => {
   const status: Record<string, unknown> = {
     ok: false,
@@ -287,24 +315,58 @@ server.tool("gmail_unmark_spam", messageIdsSchema, async ({ ids }) => {
 
 server.tool("gmail_trash", messageIdsSchema, async ({ ids }) => {
   const gmail = await createGmailClient();
-  const trashed = await Promise.all(
-    ids.map(async (id) => {
-      const response = await gmail.users.messages.trash({ userId: USER_ID, id });
-      return simplifyMessage(response.data);
+  const results = await Promise.all(
+    ids.map(async (id): Promise<{ id: string; status: string; message?: string; messageData?: unknown }> => {
+      try {
+        const response = await gmail.users.messages.trash({ userId: USER_ID, id });
+        return { id, status: "trashed", messageData: simplifyMessage(response.data) };
+      } catch (error) {
+        const info = googleApiErrorInfo(error);
+        return {
+          id,
+          status: isNotFoundError(error) ? "not_found" : "failed",
+          message: info.message,
+        };
+      }
     }),
   );
-  return jsonText({ trashed });
+
+  return jsonText({
+    requested: ids.length,
+    trashed: results.filter((result) => result.status === "trashed").map((result) => result.messageData),
+    notFound: results.filter((result) => result.status === "not_found").map((result) => result.id),
+    failed: results
+      .filter((result) => result.status === "failed")
+      .map((result) => ({ id: result.id, message: result.message })),
+  });
 });
 
 server.tool("gmail_untrash", messageIdsSchema, async ({ ids }) => {
   const gmail = await createGmailClient();
-  const untrashed = await Promise.all(
-    ids.map(async (id) => {
-      const response = await gmail.users.messages.untrash({ userId: USER_ID, id });
-      return simplifyMessage(response.data);
+  const results = await Promise.all(
+    ids.map(async (id): Promise<{ id: string; status: string; message?: string; messageData?: unknown }> => {
+      try {
+        const response = await gmail.users.messages.untrash({ userId: USER_ID, id });
+        return { id, status: "untrashed", messageData: simplifyMessage(response.data) };
+      } catch (error) {
+        const info = googleApiErrorInfo(error);
+        return {
+          id,
+          status: isNotFoundError(error) ? "not_found" : "failed",
+          message: info.message,
+        };
+      }
     }),
   );
-  return jsonText({ untrashed });
+
+  return jsonText({
+    requested: ids.length,
+    untrashed: results.filter((result) => result.status === "untrashed").map((result) => result.messageData),
+    notFound: results.filter((result) => result.status === "not_found").map((result) => result.id),
+    failed: results
+      .filter((result) => result.status === "failed")
+      .map((result) => ({ id: result.id, message: result.message })),
+  });
 });
 
 const transport = new StdioServerTransport();
