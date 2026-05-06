@@ -28,6 +28,21 @@ const messageIdsSchema = {
   ids: z.array(z.string().min(1)).min(1).max(1000).describe("Gmail message IDs."),
 };
 
+function normalizeSearchQuery(query: string): string {
+  const normalized = query.trim();
+  if (!normalized) {
+    return "in:anywhere";
+  }
+
+  if (/\b(maxResults|includeSpamTrash)\s*:/i.test(normalized)) {
+    throw new Error(
+      "Invalid Gmail query. Put maxResults and includeSpamTrash in their own tool arguments, not inside query. Example: query='in:anywhere', maxResults=5, includeSpamTrash=true.",
+    );
+  }
+
+  return normalized;
+}
+
 server.tool("gmail_auth_status", {}, async () => {
   const status: Record<string, unknown> = {
     ok: false,
@@ -97,15 +112,19 @@ server.tool("gmail_profile", {}, async () => {
 server.tool(
   "gmail_search",
   {
-    query: z.string().default("in:inbox").describe("Gmail search query, for example 'in:inbox newer_than:7d'."),
+    query: z
+      .string()
+      .default("in:inbox")
+      .describe("Gmail search query only, for example 'in:inbox newer_than:7d' or 'in:anywhere'. Do not put maxResults here."),
     maxResults: z.number().int().min(1).max(100).default(10),
     includeSpamTrash: z.boolean().default(false),
   },
   async ({ query, maxResults, includeSpamTrash }) => {
+    const gmailQuery = normalizeSearchQuery(query);
     const gmail = await createGmailClient();
     const response = await gmail.users.messages.list({
       userId: USER_ID,
-      q: query,
+      q: gmailQuery,
       maxResults,
       includeSpamTrash,
     });
@@ -128,6 +147,7 @@ server.tool(
     );
 
     return jsonText({
+      query: gmailQuery,
       resultSizeEstimate: response.data.resultSizeEstimate,
       nextPageToken: response.data.nextPageToken,
       messages: detailed,
